@@ -3,9 +3,9 @@ import EventList from "../../components/events/event-list";
 import ResultsTitle from "../../components/events/results-title";
 import Button from "../../components/ui/button";
 import ErrorAlert from "../../components/ui/error-alert";
-import { getFilteredEvents } from "../../helpers/api-util";
 import useSWR from "swr";
 import { useEffect, useState } from "react";
+import Head from "next/head";
 
 const FilteredEventsPage = () => {
   const router = useRouter();
@@ -30,12 +30,40 @@ const FilteredEventsPage = () => {
     }
   }, [data]);
 
+  let pageHeadData = (
+    <Head>
+      <title>Filtered Events</title>
+      <meta
+        name="description"
+        content="Find a lot of great event that allow you to evolve..."
+      />
+    </Head>
+  );
+
   if (!data) {
-    return <p className="center">Loading...</p>;
+    return (
+      <>
+        {pageHeadData}
+        <p className="center">Loading...</p>
+      </>
+    );
   }
 
   const year = +filterData[0];
   const month = +filterData[1];
+
+  pageHeadData = (
+    <Head>
+      <title>
+        {new Date(new Date(year, month - 1)).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })}{" "}
+        Events
+      </title>
+      <meta name="description" content={`All events for ${month}/${year}.`} />
+    </Head>
+  );
 
   if (
     isNaN(year) ||
@@ -48,6 +76,7 @@ const FilteredEventsPage = () => {
   ) {
     return (
       <>
+        {pageHeadData}
         <ErrorAlert>
           <p>Invalid filter. Please adjust your values!</p>
         </ErrorAlert>
@@ -68,6 +97,7 @@ const FilteredEventsPage = () => {
   if (!filteredEvents || filteredEvents.length === 0) {
     return (
       <>
+        {pageHeadData}
         <ErrorAlert>
           <p>No events found for the chosen filter.</p>
         </ErrorAlert>
