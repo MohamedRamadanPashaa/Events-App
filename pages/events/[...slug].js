@@ -14,7 +14,7 @@ const FilteredEventsPage = () => {
 
   const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
-  const { data, error, isLoading } = useSWR(
+  const { data, error } = useSWR(
     `https://nextjs-course-22e22-default-rtdb.firebaseio.com/events.json`,
     fetcher
   );
@@ -81,7 +81,7 @@ const FilteredEventsPage = () => {
   return (
     <>
       <ResultsTitle date={new Date(year, month - 1)} />
-      <EventList items={events} />
+      <EventList items={filteredEvents} />
     </>
   );
 };
