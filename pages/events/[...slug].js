@@ -1,152 +1,168 @@
-import { useRouter } from "next/router";
-import EventList from "../../components/events/event-list";
-import ResultsTitle from "../../components/events/results-title";
-import Button from "../../components/ui/button";
-import ErrorAlert from "../../components/ui/error-alert";
-import useSWR from "swr";
-import { useEffect, useState } from "react";
-import Head from "next/head";
+import { Fragment, useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import useSWR from 'swr';
+import Head from 'next/head';
 
-const FilteredEventsPage = () => {
+import { getFilteredEvents } from '../../helpers/api-util';
+import EventList from '../../components/events/event-list';
+import ResultsTitle from '../../components/events/results-title';
+import Button from '../../components/ui/button';
+import ErrorAlert from '../../components/ui/error-alert';
+
+function FilteredEventsPage(props) {
+  const [loadedEvents, setLoadedEvents] = useState();
   const router = useRouter();
-  const [events, setEvents] = useState([]);
+
   const filterData = router.query.slug;
 
-  const fetcher = (...args) => fetch(...args).then((res) => res.json());
-
   const { data, error } = useSWR(
-    `https://nextjs-course-22e22-default-rtdb.firebaseio.com/events.json`,
-    fetcher
+    'https://nextjs-course-c81cc-default-rtdb.firebaseio.com/events.json',
+    (url) => fetch(url).then(res => res.json())
   );
 
   useEffect(() => {
     if (data) {
       const events = [];
+
       for (const key in data) {
-        events.push({ id: key, ...data[key] });
+        events.push({
+          id: key,
+          ...data[key],
+        });
       }
 
-      setEvents(events);
+      setLoadedEvents(events);
     }
   }, [data]);
 
   let pageHeadData = (
     <Head>
       <title>Filtered Events</title>
+      <meta name='description' content={`A list of filtered events.`} />
+    </Head>
+  );
+
+  if (!loadedEvents) {
+    return (
+      <Fragment>
+        {pageHeadData}
+        <p className='center'>Loading...</p>
+      </Fragment>
+    );
+  }
+
+  const filteredYear = filterData[0];
+  const filteredMonth = filterData[1];
+
+  const numYear = +filteredYear;
+  const numMonth = +filteredMonth;
+
+  pageHeadData = (
+    <Head>
+      <title>Filtered Events</title>
       <meta
-        name="description"
-        content="Find a lot of great event that allow you to evolve..."
+        name='description'
+        content={`All events for ${numMonth}/${numYear}.`}
       />
     </Head>
   );
 
-  if (!data) {
-    return (
-      <>
-        {pageHeadData}
-        <p className="center">Loading...</p>
-      </>
-    );
-  }
-
-  const year = +filterData[0];
-  const month = +filterData[1];
-
-  pageHeadData = (
-    <Head>
-      <title>
-        {new Date(new Date(year, month - 1)).toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        })}{" "}
-        Events
-      </title>
-      <meta name="description" content={`All events for ${month}/${year}.`} />
-    </Head>
-  );
-
   if (
-    isNaN(year) ||
-    isNaN(month) ||
-    year > 2030 ||
-    year < 2021 ||
-    month < 1 ||
-    month > 12 ||
+    isNaN(numYear) ||
+    isNaN(numMonth) ||
+    numYear > 2030 ||
+    numYear < 2021 ||
+    numMonth < 1 ||
+    numMonth > 12 ||
     error
   ) {
     return (
-      <>
+      <Fragment>
         {pageHeadData}
         <ErrorAlert>
           <p>Invalid filter. Please adjust your values!</p>
         </ErrorAlert>
-        <div className="center">
-          <Button link="/events">Show All Events</Button>
+        <div className='center'>
+          <Button link='/events'>Show All Events</Button>
         </div>
-      </>
+      </Fragment>
     );
   }
 
-  const filteredEvents = events.filter((event) => {
+  const filteredEvents = loadedEvents.filter((event) => {
     const eventDate = new Date(event.date);
     return (
-      eventDate.getFullYear() === year && eventDate.getMonth() === month - 1
+      eventDate.getFullYear() === numYear &&
+      eventDate.getMonth() === numMonth - 1
     );
   });
 
   if (!filteredEvents || filteredEvents.length === 0) {
     return (
-      <>
+      <Fragment>
         {pageHeadData}
         <ErrorAlert>
-          <p>No events found for the chosen filter.</p>
+          <p>No events found for the chosen filter!</p>
         </ErrorAlert>
-        <div className="center">
-          <Button link="/events">Show All Events</Button>
+        <div className='center'>
+          <Button link='/events'>Show All Events</Button>
         </div>
-      </>
+      </Fragment>
     );
   }
 
+  const date = new Date(numYear, numMonth - 1);
+
   return (
-    <>
-      <ResultsTitle date={new Date(year, month - 1)} />
+    <Fragment>
+      {pageHeadData}
+      <ResultsTitle date={date} />
       <EventList items={filteredEvents} />
-    </>
+    </Fragment>
   );
-};
+}
 
 // export async function getServerSideProps(context) {
 //   const { params } = context;
+
 //   const filterData = params.slug;
 
-//   const year = +filterData[0];
-//   const month = +filterData[1];
+//   const filteredYear = filterData[0];
+//   const filteredMonth = filterData[1];
+
+//   const numYear = +filteredYear;
+//   const numMonth = +filteredMonth;
 
 //   if (
-//     isNaN(year) ||
-//     isNaN(month) ||
-//     year > 2030 ||
-//     year < 2021 ||
-//     month < 1 ||
-//     month > 12
+//     isNaN(numYear) ||
+//     isNaN(numMonth) ||
+//     numYear > 2030 ||
+//     numYear < 2021 ||
+//     numMonth < 1 ||
+//     numMonth > 12
 //   ) {
 //     return {
 //       props: { hasError: true },
 //       // notFound: true,
 //       // redirect: {
-//       //   destination: "/error",
-//       // },
+//       //   destination: '/error'
+//       // }
 //     };
 //   }
 
-//   const events = await getFilteredEvents({
-//     year,
-//     month,
+//   const filteredEvents = await getFilteredEvents({
+//     year: numYear,
+//     month: numMonth,
 //   });
 
 //   return {
-//     props: { events, date: { year, month } },
+//     props: {
+//       events: filteredEvents,
+//       date: {
+//         year: numYear,
+//         month: numMonth,
+//       },
+//     },
 //   };
 // }
 
